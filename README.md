@@ -1,3 +1,7 @@
+<h1>Was this plugin private?</h1>
+I finished this plugin to my Community since January 2017 (uploaded to a private repo in August 2017), and kept private until a moth**f***er decided to sell this plugin as his own (changing plugin description, for example)!!!
+After some proofs, I decided to publish here since it's the most fair to ruin a robber business (selling plugins as his)!!!
+
 <h1>[CS:GO] Fake Ranks (By Player Points)</h1>
 
 <p>A plugin which changes a player rank icon, based on his points (that are stored in a rank database).</p>
