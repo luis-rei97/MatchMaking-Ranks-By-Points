@@ -31,6 +31,10 @@ int g_RankPoints_Flag;
 char g_RankPoints_Prefix[40];
 int RankPoints[18];
 
+bool g_zrank;
+bool g_kentorankme;
+bool g_gameme;
+
 
 char RankStrings[256][18];
 
@@ -80,6 +84,35 @@ public void OnPluginStart()
 	AutoExecConfig(true, "ranks_matchmaking");
 }
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	MarkNativeAsOptional("ZR_Rank_GetPoints");
+	return APLRes_Success;
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if (StrEqual(name, "zr_rank"))
+		g_zrank = true;
+	
+	if(StrEqual(name, "rankme"))
+		g_gameme = true;
+	
+	if(StrEqual(name, "gameme"))
+		g_gameme = true;
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if (StrEqual(name, "zr_rank"))
+		g_zrank = false;
+	
+	if(StrEqual(name, "rankme"))
+		g_gameme = false;
+	
+	if(StrEqual(name, "gameme"))
+		g_gameme = false;
+}
 public void OnConfigsExecuted()
 {
 	for (int i = 0; i < 18; i++)
@@ -101,6 +134,7 @@ public void OnConfigsExecuted()
 		g_RankPoints_Flag = ReadFlagString(buffer);
 	}
 	
+	LogMessage("%d", g_RankPoints_Flag);
 	
 	g_RankPoints_Type = g_CVAR_RankPoints_Type.IntValue;
 	
@@ -159,21 +193,23 @@ public void OnClientPostAdminCheck(int client)
 			Checks if it is a GameMe Rank that you want to use;
 			If not, it will use Kento's RankMe instead;
 		*/
+		int points;
 		
-		switch(g_RankPoints_Type)
+		if(g_RankPoints_Type == 0 && g_kentorankme)
 		{
-			case 0:
-			{
-				CheckRanks(client, RankMe_GetPoints(client));
-			}
-			case 1:
-			{
-				QueryGameMEStats("playerinfo", client, QuerygameMEStatsCallback, 0);	
-			}
-			case 2:
-			{
-				CheckRanks(client, ZR_Rank_GetPoints(client));
-			}
+			points = RankMe_GetPoints(client);
+			CheckRanks(client, points);
+		}
+		
+		if(g_RankPoints_Type == 1 && g_gameme)
+		{
+			QueryGameMEStats("playerinfo", client, QuerygameMEStatsCallback, 0);
+		}
+		
+		if(g_RankPoints_Type == 2 && g_zrank)
+		{
+			points = ZR_Rank_GetPoints(client);
+			CheckRanks(client, points);
 		}
 	}
 }
@@ -351,7 +387,6 @@ public void Hook_OnThinkPost(int iEnt)
 	{
 		if(IsValidClient(i))
 		{
-			//CheckRanks(i);
 			iRank[i] = rank[i];
 			iRankType[i] = rankType[i];
 			SetEntDataArray(iEnt, iRankOffset, iRank, MaxClients+1);
@@ -367,7 +402,7 @@ public Action Menu_MM(int client, int args)
 		return Plugin_Continue;
 	}
 	
-	if((g_RankPoints_Flag != -1) && (CheckCommandAccess(client, "", g_RankPoints_Flag, true)))
+	if((g_RankPoints_Flag != -1) && (!CheckCommandAccess(client, "", g_RankPoints_Flag, true)))
 	{
 		CPrintToChat(client, "%s %t", g_RankPoints_Prefix, "No Access");
 		return Plugin_Continue;
@@ -469,7 +504,7 @@ public Action Menu_Points(int client, int args)
 	menu.AddItem("1", buffer);
 	
 	char S_i[2];
-	for(int i = 1; i < 18; i++)
+	for(int i = 1; i < 17; i++)
 	{
 		IntToString(i, S_i, sizeof(S_i));
 		FormatEx(buffer, sizeof(buffer), "%t", "Between X and Y", RankStrings[i], RankPoints[i], (RankPoints[i + 1] - 1));
