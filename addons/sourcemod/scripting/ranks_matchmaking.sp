@@ -41,9 +41,9 @@ char RankStrings[256][18];
 public Plugin myinfo = 
 {
 	name = "RankMe Scoreboard Ranks",
-	author = "Hallucinogenic Troll",
+	author = "Hallucinogenic Troll / abnerfs",
 	description = "Prints the Matchmaking Ranks on scoreboard, based on Rankme Stats",
-	version = "1.0",
+	version = "1.1",
 	url = "http://PTFun.net/newsite/"
 };
 
@@ -87,6 +87,7 @@ public void OnPluginStart()
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	MarkNativeAsOptional("ZR_Rank_GetPoints");
+	MarkNativeAsOptional("RankMe_OnPlayerLoaded");
 	return APLRes_Success;
 }
 
@@ -96,7 +97,7 @@ public void OnLibraryAdded(const char[] name)
 		g_zrank = true;
 	
 	if(StrEqual(name, "rankme"))
-		g_gameme = true;
+		g_kentorankme = true;
 	
 	if(StrEqual(name, "gameme"))
 		g_gameme = true;
@@ -108,7 +109,7 @@ public void OnLibraryRemoved(const char[] name)
 		g_zrank = false;
 	
 	if(StrEqual(name, "rankme"))
-		g_gameme = false;
+		g_kentorankme = false;
 	
 	if(StrEqual(name, "gameme"))
 		g_gameme = false;
@@ -195,11 +196,12 @@ public void OnClientPostAdminCheck(int client)
 		*/
 		int points;
 		
-		if(g_RankPoints_Type == 0 && g_kentorankme)
-		{
-			points = RankMe_GetPoints(client);
-			CheckRanks(client, points);
-		}
+		//Check in forward RankMe_OnPlayerLoaded
+		// if(g_RankPoints_Type == 0 && g_kentorankme)
+		// {
+		// 	points = RankMe_GetPoints(client);
+		// 	CheckRanks(client, points);
+		// }
 		
 		if(g_RankPoints_Type == 1 && g_gameme)
 		{
@@ -211,6 +213,15 @@ public void OnClientPostAdminCheck(int client)
 			points = ZR_Rank_GetPoints(client);
 			CheckRanks(client, points);
 		}
+	}
+}
+
+public Action RankMe_OnPlayerLoaded(int client) 
+{
+	if(g_RankPoints_Type == 0 && g_kentorankme)
+	{
+		int points = RankMe_GetPoints(client);
+		CheckRanks(client, points);
 	}
 }
 
