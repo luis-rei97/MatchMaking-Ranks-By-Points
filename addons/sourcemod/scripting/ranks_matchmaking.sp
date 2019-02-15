@@ -13,10 +13,7 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-Handle cookie_mm_type = INVALID_HANDLE;
-
 int rank[MAXPLAYERS+1] = {0, ...};
-int rankType[MAXPLAYERS+1] = {0, ...};
 int oldrank[MAXPLAYERS+1] = {0, ...};
 
 // ConVar Variables
@@ -35,7 +32,6 @@ bool g_zrank;
 bool g_kentorankme;
 bool g_gameme;
 
-
 char RankStrings[256][18];
 
 public Plugin myinfo = 
@@ -43,22 +39,21 @@ public Plugin myinfo =
 	name = "RankMe Scoreboard Ranks",
 	author = "Hallucinogenic Troll",
 	description = "Prints the Matchmaking Ranks on scoreboard, based on Rankme Stats",
-	version = "1.0",
+	version = "1.1",
 	url = "http://PTFun.net/newsite/"
 };
 
 public void OnPluginStart()
 {
-	RegConsoleCmd("sm_mm", Menu_MM);
+	RegConsoleCmd("sm_mm", Menu_Points);
 	HookEvent("announce_phase_end", Event_AnnouncePhaseEnd);
 	HookEvent("player_disconnect", Event_Disconnect, EventHookMode_Pre);
-	cookie_mm_type = RegClientCookie("cookie_mm_type", "Matchmaking Icon Type", CookieAccess_Public);
 	
 	// ConVar to check which rank you want
 	
 	g_CVAR_RankPoints_Type = CreateConVar("sm_ranks_matchmaking_typeofrank", "0", "Type of Rank that you want to use for this plugin (0 for Kento Rankme, 1 for GameMe, 2 for ZR Rank)", _, true, 0.0, true, 2.0);
 	g_CVAR_RankPoints_Prefix = CreateConVar("sm_ranks_matchmaking_prefix", "[{purple}Fake Ranks{default}]", "Chat Prefix");
-	g_CVAR_RankPoints_Flag = CreateConVar("sm_ranks_matchmaking_flag", "0", "Flag to restrict the ranks to certain players (0 enable the ranks for everyone)");
+	g_CVAR_RankPoints_Flag = CreateConVar("sm_ranks_matchmaking_flag", "", "Flag to restrict the ranks to certain players (leave it empty to enable for everyone)");
 	
 	// Rank Points ConVars;
 	g_CVAR_RanksPoints[0] = CreateConVar("sm_ranks_matchmaking_point_s1", "100", "Number of Points to reach Silver I", _, true, 0.0, false);
@@ -87,6 +82,8 @@ public void OnPluginStart()
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	MarkNativeAsOptional("ZR_Rank_GetPoints");
+	MarkNativeAsOptional("RankMe_GetPoints");
+	MarkNativeAsOptional("QueryGameMEStats");
 	return APLRes_Success;
 }
 
@@ -113,6 +110,7 @@ public void OnLibraryRemoved(const char[] name)
 	if(StrEqual(name, "gameme"))
 		g_gameme = false;
 }
+
 public void OnConfigsExecuted()
 {
 	for (int i = 0; i < 18; i++)
@@ -125,7 +123,7 @@ public void OnConfigsExecuted()
 	char buffer[10];
 	g_CVAR_RankPoints_Flag.GetString(buffer, sizeof(buffer));
 	
-	if(StrEqual(buffer, "0"))
+	if(StrEqual(buffer, "0") || strlen(buffer) < 1)
 	{
 		g_RankPoints_Flag = -1;
 	}
@@ -177,36 +175,25 @@ public void OnMapStart()
 public void OnClientPostAdminCheck(int client)
 {
 	if(IsValidClient(client))
-	{
-		if(AreClientCookiesCached(client))
-		{
-			char cookie_buffer[52];
-			GetClientCookie(client, cookie_mm_type, cookie_buffer, sizeof(cookie_buffer));	
-			rankType[client] = StringToInt(cookie_buffer);
-		}
-		else
-		{
-			SetClientCookie(client, cookie_mm_type, "0");
-		}
-		
+	{		
 		/* 
 			Checks if it is a GameMe Rank that you want to use;
 			If not, it will use Kento's RankMe instead;
 		*/
 		int points;
 		
-		if(g_RankPoints_Type == 0 && g_kentorankme)
+		if(g_kentorankme && g_RankPoints_Type == 0)
 		{
 			points = RankMe_GetPoints(client);
 			CheckRanks(client, points);
 		}
 		
-		if(g_RankPoints_Type == 1 && g_gameme)
+		if(g_gameme && g_RankPoints_Type == 1)
 		{
 			QueryGameMEStats("playerinfo", client, QuerygameMEStatsCallback, 0);
 		}
 		
-		if(g_RankPoints_Type == 2 && g_zrank)
+		if(g_zrank && g_RankPoints_Type == 2)
 		{
 			points = ZR_Rank_GetPoints(client);
 			CheckRanks(client, points);
@@ -370,126 +357,21 @@ public void CheckRanks(int client, int points)
 public void Hook_OnThinkPost(int iEnt)
 {
 	static int iRankOffset = -1;
-	static int iRankOffsetType = -1;
 	if (iRankOffset == -1)
 	{
 		iRankOffset = FindSendPropInfo("CCSPlayerResource", "m_iCompetitiveRanking");
 	}
-	if(iRankOffsetType == -1)
-	{
-		iRankOffsetType = FindSendPropInfo("CCSPlayerResource", "m_iCompetitiveRankType");
-	}
 	
 	int iRank[MAXPLAYERS+1];
-	int iRankType[MAXPLAYERS + 1];
-	GetEntDataArray(iEnt, iRankOffset, iRank, MaxClients+1);
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if(IsValidClient(i))
 		{
 			iRank[i] = rank[i];
-			iRankType[i] = rankType[i];
 			SetEntDataArray(iEnt, iRankOffset, iRank, MaxClients+1);
-			SetEntDataArray(iEnt, iRankOffsetType, iRankType, MAXPLAYERS+1, 1);
 		}
 	}
 }
-
-public Action Menu_MM(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Continue;
-	}
-	
-	if((g_RankPoints_Flag != -1) && (!CheckCommandAccess(client, "", g_RankPoints_Flag, true)))
-	{
-		CPrintToChat(client, "%s %t", g_RankPoints_Prefix, "No Access");
-		return Plugin_Continue;
-	}
-	
-	char buffer[256];
-	Menu menu = new Menu(Menu_Handler);
-	FormatEx(buffer, sizeof(buffer), "%t", "Rank Menu Title");
-	
-	menu.SetTitle(buffer);
-	
-	FormatEx(buffer, sizeof(buffer), "%t", "Change Rank Icon");
-	menu.AddItem("1", buffer);
-	FormatEx(buffer, sizeof(buffer), "%t", "Check Rank Points");
-	menu.AddItem("2", buffer);
-	menu.ExitButton = true;
-	menu.Display(client, 20);
-	
-	return Plugin_Handled;
-}
-
-public int Menu_Handler(Menu menu, MenuAction action, int client, int choice)
-{
-	if(action == MenuAction_Select)
-	{
-		switch(choice)
-		{
-			case 0: Menu_Choice(client, choice);
-			case 1: Menu_Points(client, choice);
-		}
-	}
-	else if (action == MenuAction_End)
-	{
-		delete menu;
-	}
-}
-
-public Action Menu_Choice(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Continue;
-	}
-	
-	char buffer[256];
-	Menu menu = new Menu(Menu_Choice_Handler);
-	FormatEx(buffer, sizeof(buffer), "%t", "Select Rank Icon");
-	menu.SetTitle(buffer);
-	
-	FormatEx(buffer, sizeof(buffer), "%t", "Matchmaking Rank");
-	menu.AddItem(buffer, buffer);
-	
-	FormatEx(buffer, sizeof(buffer), "%t", "WingMan Rank");
-	menu.AddItem(buffer, buffer);
-	menu.ExitButton = true;
-	menu.Display(client, 20);
-	
-	return Plugin_Handled;
-}
-
-public int Menu_Choice_Handler(Menu menu, MenuAction action, int client, int choice)
-{
-	if(action == MenuAction_Select)
-	{
-		char info[64];
-		menu.GetItem(choice, info, sizeof(info));
-		switch(choice)
-		{
-			case 0: 
-			{
-				rankType[client] = 0;
-				SetClientCookie(client, cookie_mm_type, "0");
-			}
-			case 1:
-			{
-				rankType[client] = 7;
-				SetClientCookie(client, cookie_mm_type, "7");
-			}
-		}
-		CPrintToChat(client, "%s %t", g_RankPoints_Prefix, "Changed Rank", info);
-	}
-	else if (action == MenuAction_End)
-	{
-		delete menu;
-	}
-}
-
 
 public Action Menu_Points(int client, int args)
 {
@@ -497,17 +379,17 @@ public Action Menu_Points(int client, int args)
 	
 	char buffer[256];
 	
-	FormatEx(buffer, sizeof(buffer), "%t", "Rank Menu Title");
+	Format(buffer, sizeof(buffer), "%t", "Rank Menu Title");
 	menu.SetTitle(buffer);
 	
-	FormatEx(buffer, sizeof(buffer), "%t", "Less Than X Points", RankStrings[0], (RankPoints[0] - 1));
+	Format(buffer, sizeof(buffer), "%t", "Less Than X Points", RankStrings[0], (RankPoints[0] - 1));
 	menu.AddItem("1", buffer);
 	
 	char S_i[2];
 	for(int i = 1; i < 17; i++)
 	{
 		IntToString(i, S_i, sizeof(S_i));
-		FormatEx(buffer, sizeof(buffer), "%t", "Between X and Y", RankStrings[i], RankPoints[i], (RankPoints[i + 1] - 1));
+		Format(buffer, sizeof(buffer), "%t", "Between X and Y", RankStrings[i], RankPoints[i], (RankPoints[i + 1] - 1));
 		menu.AddItem(S_i, buffer);
 	}
 	
