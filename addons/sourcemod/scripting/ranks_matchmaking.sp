@@ -39,7 +39,7 @@ public Plugin myinfo =
 	name = "RankMe Scoreboard Ranks",
 	author = "Hallucinogenic Troll",
 	description = "Prints the Matchmaking Ranks on scoreboard, based on Rankme Stats",
-	version = "1.1",
+	version = "1.2",
 	url = "http://PTFun.net/newsite/"
 };
 
@@ -82,6 +82,7 @@ public void OnPluginStart()
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	MarkNativeAsOptional("ZR_Rank_GetPoints");
+	MarkNativeAsOptional("RankMe_OnPlayerLoaded");
 	MarkNativeAsOptional("RankMe_GetPoints");
 	MarkNativeAsOptional("QueryGameMEStats");
 	return APLRes_Success;
@@ -93,7 +94,7 @@ public void OnLibraryAdded(const char[] name)
 		g_zrank = true;
 	
 	if(StrEqual(name, "rankme"))
-		g_gameme = true;
+		g_kentorankme = true;
 	
 	if(StrEqual(name, "gameme"))
 		g_gameme = true;
@@ -105,7 +106,7 @@ public void OnLibraryRemoved(const char[] name)
 		g_zrank = false;
 	
 	if(StrEqual(name, "rankme"))
-		g_gameme = false;
+		g_kentorankme = false;
 	
 	if(StrEqual(name, "gameme"))
 		g_gameme = false;
@@ -131,8 +132,6 @@ public void OnConfigsExecuted()
 	{
 		g_RankPoints_Flag = ReadFlagString(buffer);
 	}
-	
-	LogMessage("%d", g_RankPoints_Flag);
 	
 	g_RankPoints_Type = g_CVAR_RankPoints_Type.IntValue;
 	
@@ -172,6 +171,16 @@ public void OnMapStart()
 	SDKHook(iIndex, SDKHook_ThinkPost, Hook_OnThinkPost);
 }
 
+public Action RankMe_OnPlayerLoaded(int client)
+{
+	if(g_kentorankme && g_RankPoints_Type == 0)
+	{
+		int points = RankMe_GetPoints(client);
+		CheckRanks(client, points);
+	}
+		
+}
+
 public void OnClientPostAdminCheck(int client)
 {
 	if(IsValidClient(client))
@@ -180,13 +189,6 @@ public void OnClientPostAdminCheck(int client)
 			Checks if it is a GameMe Rank that you want to use;
 			If not, it will use Kento's RankMe instead;
 		*/
-		int points;
-		
-		if(g_kentorankme && g_RankPoints_Type == 0)
-		{
-			points = RankMe_GetPoints(client);
-			CheckRanks(client, points);
-		}
 		
 		if(g_gameme && g_RankPoints_Type == 1)
 		{
@@ -195,7 +197,7 @@ public void OnClientPostAdminCheck(int client)
 		
 		if(g_zrank && g_RankPoints_Type == 2)
 		{
-			points = ZR_Rank_GetPoints(client);
+			int points = ZR_Rank_GetPoints(client);
 			CheckRanks(client, points);
 		}
 	}

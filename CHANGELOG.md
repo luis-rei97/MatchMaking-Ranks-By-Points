@@ -11,3 +11,7 @@
 
 - Removed the possibility to change the rank icon (not possible anymore with the Panorama UI, unless you play on wingman mode);
 - Fixed a few bugs related to flags;
+
+<h2>Version 1.2 </h2>
+
+- Resolved a bug related to RankMe Points;
