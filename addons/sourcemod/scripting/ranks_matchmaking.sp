@@ -386,7 +386,7 @@ public void CheckRanks(int client, int points)
 			}
 			case 1:
 			{
-				ShowOverlay(client, RankOverlays[rank[client] - 1], 3.0);
+				ShowOverlay(client, RankOverlays[rank[client] - 1], g_RankPoints_OverlayTime);
 			}
 		}
 		
