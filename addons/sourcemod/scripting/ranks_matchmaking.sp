@@ -23,6 +23,7 @@ ConVar g_CVAR_RankPoints_Type;
 ConVar g_CVAR_RankPoints_Flag;
 ConVar g_CVAR_RankPoints_Prefix;
 ConVar g_CVAR_RankPoints_HudOverlay;
+ConVar g_CVAR_RankPoints_OverlayTime;
 ConVar g_CVAR_RankPoints_SoundEnable;
 ConVar g_CVAR_RankPoints_SoundRankUp;
 ConVar g_CVAR_RankPoints_SoundRankDown;
@@ -32,8 +33,9 @@ int g_RankPoints_Type;
 int g_RankPoints_Flag;
 int g_RankPoints_HudOverlay;
 int g_RankPoints_SoundEnable;
-char g_RankPoints_SoundRankUp[PLATFORM_MAX_PATH+1];
-char g_RankPoints_SoundRankDown[PLATFORM_MAX_PATH+1];
+float g_RankPoints_OverlayTime;
+char g_RankPoints_SoundRankUp[PLATFORM_MAX_PATH];
+char g_RankPoints_SoundRankDown[PLATFORM_MAX_PATH];
 char g_RankPoints_Prefix[40];
 int RankPoints[18];
 
@@ -49,7 +51,7 @@ public Plugin myinfo =
 	name = "[CS:GO] Matchmaking Ranks by Points",
 	author = "Hallucinogenic Troll",
 	description = "Prints the Matchmaking Ranks on scoreboard, based on points stats by a certain rank.",
-	version = "1.4",
+	version = "1.5",
 	url = "https://PTFun.net/"
 };
 
@@ -65,6 +67,7 @@ public void OnPluginStart()
 	g_CVAR_RankPoints_Prefix = CreateConVar("ranks_matchmaking_prefix", "[{purple}Fake Ranks{default}]", "Chat Prefix");
 	g_CVAR_RankPoints_Flag = CreateConVar("ranks_matchmaking_flag", "", "Flag to restrict the ranks to certain players (leave it empty to enable for everyone)");
 	g_CVAR_RankPoints_HudOverlay = CreateConVar("ranks_matchmaking_hudoverlay" , "1", "Chooses between a HUD Text Message (0) or an Overlay (1)", _, true, 0.0, true, 1.0);
+	g_CVAR_RankPoints_OverlayTime = CreateConVar("ranks_matchmaking_overlaytime", "5.0", "Time between showing and deleting the overlay (need \"ranks_matchmaking_hudoverlay\" set to 1). 0.0 means forever", _, true, 0.0, false);
 	g_CVAR_RankPoints_SoundEnable = CreateConVar("ranks_matchmaking_soundenable", "1", "Enable sounds when a player ranks up or deranks", _, true, 0.0, true, 1.0);
 	g_CVAR_RankPoints_SoundRankUp = CreateConVar("ranks_matchmaking_soundrankup", "levels_ranks/levelup.mp3", "Path to the sound which will play on Rank Up (needs \"ranks_matchmaking_soundenable\" set to 1)");
 	g_CVAR_RankPoints_SoundRankDown = CreateConVar("ranks_matchmaking_soundrankdown", "levels_ranks/leveldown.mp3", "Path to the sound which will play on Derank (needs \"ranks_matchmaking_soundenable\" set to 1)");
@@ -132,6 +135,7 @@ public void OnMapStart()
 		RankPoints[i] = g_CVAR_RanksPoints[i].IntValue;
 		
 	g_RankPoints_HudOverlay = g_CVAR_RankPoints_HudOverlay.IntValue;
+	g_RankPoints_OverlayTime = g_CVAR_RankPoints_OverlayTime.FloatValue;
 	
 	g_CVAR_RankPoints_Prefix.GetString(g_RankPoints_Prefix, sizeof(g_RankPoints_Prefix));
 	
@@ -158,7 +162,9 @@ public void OnMapStart()
 	SDKHook(iIndex, SDKHook_ThinkPost, Hook_OnThinkPost);
 	
 	GetRanksNames();
-	GetRanksOverlays();
+	
+	if(g_RankPoints_HudOverlay)
+		GetRanksOverlays();
 	
 	if(g_RankPoints_SoundEnable)
 		GetRanksGradesSounds();
@@ -358,7 +364,7 @@ public void CheckRanks(int client, int points)
 			}
 			case 1:
 			{
-				ShowOverlay(client, RankOverlays[rank[client] - 1], 3.0);
+				ShowOverlay(client, RankOverlays[rank[client] - 1], g_RankPoints_OverlayTime);
 			}
 		}
 		
