@@ -434,9 +434,11 @@ public Action Menu_Points(int client, int args)
 	for(int i = 1; i < 17; i++)
 	{
 		IntToString(i, S_i, sizeof(S_i));
-		Format(buffer, sizeof(buffer), "%t", "Between X and Y", RankStrings[i], RankPoints[i], (RankPoints[i + 1] - 1));
+		Format(buffer, sizeof(buffer), "%t", "Between X and Y", RankStrings[i], RankPoints[i - 1], (RankPoints[i + 1] - 1));
 		menu.AddItem(S_i, buffer);
 	}
+	Format(buffer, sizeof(buffer), "%t", "More Than X Points", RankStrings[18], (RankPoints[17] - 1));
+	menu.AddItem("17", buffer);
 	
 	menu.ExitButton = true;
 	menu.Display(client, 20);

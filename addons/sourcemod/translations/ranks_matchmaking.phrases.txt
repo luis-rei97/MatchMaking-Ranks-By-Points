@@ -141,6 +141,13 @@
 		"pt"		"{1} - Menos do que {2} pontos"
 	}
 	
+	"More Than X Points"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{1} - More than {2} points"
+		"pt"		"{1} - Mais do que {2} pontos"
+	}
+
 	"Between X and Y"
 	{
 		"#format"	"{1:s},{2:d},{3:d}"
