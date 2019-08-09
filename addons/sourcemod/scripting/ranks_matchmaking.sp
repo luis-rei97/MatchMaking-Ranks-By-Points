@@ -9,6 +9,7 @@
 #include <kento_rankme/rankme>
 #include <gameme>
 #include <zr_rank>
+#include <hlstatsx_api>
 #define REQUIRE_PLUGIN
 
 #pragma newdecls required
@@ -42,6 +43,7 @@ int RankPoints[18];
 bool g_zrank;
 bool g_kentorankme;
 bool g_gameme;
+bool g_hlstatsx;
 
 char RankStrings[19][256];
 char RankOverlays[18][PLATFORM_MAX_PATH];
@@ -51,7 +53,7 @@ public Plugin myinfo =
 	name = "[CS:GO] Matchmaking Ranks by Points",
 	author = "Hallucinogenic Troll",
 	description = "Prints the Matchmaking Ranks on scoreboard, based on points stats by a certain rank.",
-	version = "1.5",
+	version = "1.6",
 	url = "https://PTFun.net/"
 };
 
@@ -63,7 +65,7 @@ public void OnPluginStart()
 	HookEvent("player_disconnect", Event_Disconnect, EventHookMode_Pre);
 	
 	// ConVar to check which rank you want
-	g_CVAR_RankPoints_Type = CreateConVar("ranks_matchmaking_typeofrank", "0", "Type of Rank that you want to use for this plugin (0 for Kento Rankme, 1 for GameMe, 2 for ZR Rank)", _, true, 0.0, true, 2.0);
+	g_CVAR_RankPoints_Type = CreateConVar("ranks_matchmaking_typeofrank", "0", "Type of Rank that you want to use for this plugin (0 for Kento Rankme, 1 for GameMe, 2 for ZR Rank, 3 for HLStatsX)", _, true, 0.0, true, 3.0);
 	g_CVAR_RankPoints_Prefix = CreateConVar("ranks_matchmaking_prefix", "[{purple}Fake Ranks{default}]", "Chat Prefix");
 	g_CVAR_RankPoints_Flag = CreateConVar("ranks_matchmaking_flag", "", "Flag to restrict the ranks to certain players (leave it empty to enable for everyone)");
 	g_CVAR_RankPoints_HudOverlay = CreateConVar("ranks_matchmaking_hudoverlay" , "1", "Chooses between a HUD Text Message (0) or an Overlay (1)", _, true, 0.0, true, 1.0);
@@ -107,26 +109,28 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnLibraryAdded(const char[] name)
 {
-	if (StrEqual(name, "zr_rank"))
+	if (StrEqual(name, "zr_rank")) {
 		g_zrank = true;
-	
-	if(StrEqual(name, "rankme"))
+	} else if (StrEqual(name, "rankme")) {
 		g_kentorankme = true;
-	
-	if(StrEqual(name, "gameme"))
+	} else if(StrEqual(name, "gameme")) {
 		g_gameme = true;
+	} else if (StrEqual(name, "hlstatsx_api")) {
+		g_hlstatsx = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
 {
-	if (StrEqual(name, "zr_rank"))
+	if (StrEqual(name, "zr_rank")) {
 		g_zrank = false;
-	
-	if(StrEqual(name, "rankme"))
+	} else if(StrEqual(name, "rankme")) {
 		g_kentorankme = false;
-	
-	if(StrEqual(name, "gameme"))
+	} else if(StrEqual(name, "gameme")) {
 		g_gameme = false;
+	} else if (StrEqual(name, "hlstatsx_api")) {
+		g_hlstatsx = false;
+	}		
 }
 
 public void OnMapStart()
@@ -222,20 +226,24 @@ public Action RankMe_OnPlayerLoaded(int client)
 		int points = RankMe_GetPoints(client);
 		CheckRanks(client, points);
 	}
-		
 }
 
 public void OnClientPostAdminCheck(int client)
 {
-	if(IsValidClient(client))
-	{	
-		if(g_gameme && g_RankPoints_Type == 1)
+	if (IsValidClient(client)) {
+
+		if (g_gameme && g_RankPoints_Type == 1) {
+
 			QueryGameMEStats("playerinfo", client, QuerygameMEStatsCallback, 0);
-		
-		if(g_zrank && g_RankPoints_Type == 2)
-		{
+
+		} else if (g_zrank && g_RankPoints_Type == 2) {
+
 			int points = ZR_Rank_GetPoints(client);
 			CheckRanks(client, points);
+
+		} else if (g_hlstatsx && g_RankPoints_Type == 3) {
+
+			HLStatsX_Api_GetStats("playerinfo", client, _HLStatsX_API_Response, 0);
 		}
 	}
 }
@@ -256,6 +264,24 @@ public int QuerygameMEStatsCallback(int command, int payload, int client, Handle
 		
 		CheckRanks(client, points);	
 	}
+}
+
+public void _HLStatsX_API_Response(int command, int payload, int client, DataPack &datapack)
+{
+	if (!IsValidClient(client) || command != HLX_CALLBACK_TYPE_PLAYER_INFO) {
+		return;
+	}
+
+	DataPack pack = view_as<DataPack>(CloneHandle(datapack));
+	int points;
+	
+	points = pack.ReadCell();
+	points = pack.ReadCell();
+
+	delete datapack;
+	delete pack;
+
+	CheckRanks(client, points);
 }
 
 public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
@@ -286,19 +312,23 @@ public Action Event_Disconnect(Event event, const char[] name, bool dontBroadcas
 
 public void CheckPoints(int client)
 {
-	if(g_kentorankme && g_RankPoints_Type == 0)
-	{
+	if (g_kentorankme && g_RankPoints_Type == 0) {
+
 		int points = RankMe_GetPoints(client);
 		CheckRanks(client, points);
-	}
-	
-	if(g_gameme && g_RankPoints_Type == 1)
+
+	} else if (g_gameme && g_RankPoints_Type == 1) {
+		
 		QueryGameMEStats("playerinfo", client, QuerygameMEStatsCallback, 0);
-	
-	if(g_zrank && g_RankPoints_Type == 2)
-	{
+
+	} else if (g_zrank && g_RankPoints_Type == 2) {
+
 		int points = ZR_Rank_GetPoints(client);
 		CheckRanks(client, points);
+
+	} else if (g_hlstatsx && g_RankPoints_Type == 3) {
+
+		HLStatsX_Api_GetStats("playerinfo", client, _HLStatsX_API_Response, 0);
 	}
 }
 
