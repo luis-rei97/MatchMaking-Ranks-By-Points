@@ -12,6 +12,7 @@ Prints the Matchmaking Ranks on scoreboard, based on points stats by a certain r
 - [Kento RankMe](https://forums.alliedmods.net/showthread.php?t=290063)
 - [Game Me](https://www.gameme.com/)
 - [HLStatsX](https://github.com/NomisCZ/hlstatsx-community-edition) (version 1.7+, upgrade daemon and use hlstatsx_api plugin)
+- [Multi1v1](https://github.com/splewis/csgo-multi-1v1/)
 
 The following is just for those who want to compile the plugin:
 - [Overlays](https://forums.alliedmods.net/showthread.php?p=2526683); 
@@ -22,7 +23,7 @@ The following is just for those who want to compile the plugin:
 
 ### ConVars
 
-- **ranks_matchmaking_typeofrank** (Default: 0) - Type of Rank that you want to use for this plugin (0 for Kento Rankme, 1 for GameMe, 2 for ZR Rank, 3 for HLStatsX)
+- **ranks_matchmaking_typeofrank** (Default: 0) - Type of Rank that you want to use for this plugin (0 for Kento Rankme, 1 for GameMe, 2 for ZR Rank, 3 for HLStatsX, 4 for Multi1v1 Stats)
 - **ranks_matchmaking_prefix** (Default: "[{purple}Fake Ranks{default}]") - Chat Prefix
 - **ranks_matchmaking_flag** (Default: 0) - Flag to restrict the ranks to certain players (0 enable the ranks for everyone)
 - **ranks_matchmaking_point_s1** (Default: 100) - Number of Points to reach Silver I
