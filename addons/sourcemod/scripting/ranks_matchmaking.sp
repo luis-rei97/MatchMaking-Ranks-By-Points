@@ -10,6 +10,7 @@
 #include <gameme>
 #include <zr_rank>
 #include <hlstatsx_api>
+#include "include/multi1v1.inc"
 #define REQUIRE_PLUGIN
 
 #pragma newdecls required
@@ -44,6 +45,7 @@ bool g_zrank;
 bool g_kentorankme;
 bool g_gameme;
 bool g_hlstatsx;
+bool g_multi1v1;
 
 char RankStrings[19][256];
 char RankOverlays[18][PLATFORM_MAX_PATH];
@@ -65,7 +67,7 @@ public void OnPluginStart()
 	HookEvent("player_disconnect", Event_Disconnect, EventHookMode_Pre);
 	
 	// ConVar to check which rank you want
-	g_CVAR_RankPoints_Type = CreateConVar("ranks_matchmaking_typeofrank", "0", "Type of Rank that you want to use for this plugin (0 for Kento Rankme, 1 for GameMe, 2 for ZR Rank, 3 for HLStatsX)", _, true, 0.0, true, 3.0);
+	g_CVAR_RankPoints_Type = CreateConVar("ranks_matchmaking_typeofrank", "0", "Type of Rank that you want to use for this plugin (0 for Kento Rankme, 1 for GameMe, 2 for ZR Rank, 3 for HLStatsX, 4 for Multi1v1 Stats)", _, true, 0.0, true, 4.0);
 	g_CVAR_RankPoints_Prefix = CreateConVar("ranks_matchmaking_prefix", "[{purple}Fake Ranks{default}]", "Chat Prefix");
 	g_CVAR_RankPoints_Flag = CreateConVar("ranks_matchmaking_flag", "", "Flag to restrict the ranks to certain players (leave it empty to enable for everyone)");
 	g_CVAR_RankPoints_HudOverlay = CreateConVar("ranks_matchmaking_hudoverlay" , "1", "Chooses between a HUD Text Message (0) or an Overlay (1)", _, true, 0.0, true, 1.0);
@@ -104,6 +106,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("RankMe_OnPlayerLoaded");
 	MarkNativeAsOptional("RankMe_GetPoints");
 	MarkNativeAsOptional("QueryGameMEStats");
+	MarkNativeAsOptional("Multi1v1_GetRating");
 	return APLRes_Success;
 }
 
@@ -117,6 +120,8 @@ public void OnLibraryAdded(const char[] name)
 		g_gameme = true;
 	} else if (StrEqual(name, "hlstatsx_api")) {
 		g_hlstatsx = true;
+	} else if (StrEqual(name, "multi1v1")) {
+		g_multi1v1 = true;
 	}
 }
 
@@ -130,7 +135,9 @@ public void OnLibraryRemoved(const char[] name)
 		g_gameme = false;
 	} else if (StrEqual(name, "hlstatsx_api")) {
 		g_hlstatsx = false;
-	}		
+	} else if (StrEqual(name, "multi1v1")) {
+		g_multi1v1 = false;
+	}			
 }
 
 public void OnMapStart()
@@ -244,6 +251,10 @@ public void OnClientPostAdminCheck(int client)
 		} else if (g_hlstatsx && g_RankPoints_Type == 3) {
 
 			HLStatsX_Api_GetStats("playerinfo", client, _HLStatsX_API_Response, 0);
+		} else if (g_multi1v1 && g_RankPoints_Type == 4) {
+
+			int points = RoundToNearest(Multi1v1_GetRating(client));
+			CheckRanks(client, points);
 		}
 	}
 }
@@ -329,6 +340,10 @@ public void CheckPoints(int client)
 	} else if (g_hlstatsx && g_RankPoints_Type == 3) {
 
 		HLStatsX_Api_GetStats("playerinfo", client, _HLStatsX_API_Response, 0);
+	} else if (g_multi1v1 && g_RankPoints_Type == 4) {
+
+		int points = RoundToNearest(Multi1v1_GetRating(client));
+		CheckRanks(client, points);
 	}
 }
 
