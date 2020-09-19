@@ -69,7 +69,7 @@ public void OnPluginStart()
 	HookEvent("player_disconnect", Event_Disconnect, EventHookMode_Pre);
 	
 	// ConVar to check which rank you want
-	g_CVAR_RankPoints_Type = CreateConVar("ranks_matchmaking_typeofrank", "0", "Type of Rank that you want to use for this plugin (0 for Kento Rankme, 1 for GameMe, 2 for ZR Rank, 3 for HLStatsX, 4 for Multi1v1 Stats, 4 for Levels Ranks)", _, true, 0.0, true, 5.0);
+	g_CVAR_RankPoints_Type = CreateConVar("ranks_matchmaking_typeofrank", "0", "Type of Rank that you want to use for this plugin (0 for Kento Rankme, 1 for GameMe, 2 for ZR Rank, 3 for HLStatsX, 4 for Multi1v1 Stats, 5 for Levels Ranks)", _, true, 0.0, true, 5.0);
 	g_CVAR_RankPoints_Prefix = CreateConVar("ranks_matchmaking_prefix", "[{purple}Fake Ranks{default}]", "Chat Prefix");
 	g_CVAR_RankPoints_Flag = CreateConVar("ranks_matchmaking_flag", "", "Flag to restrict the ranks to certain players (leave it empty to enable for everyone)");
 	g_CVAR_RankPoints_HudOverlay = CreateConVar("ranks_matchmaking_hudoverlay" , "1", "Chooses between a HUD Text Message (0) or an Overlay (1)", _, true, 0.0, true, 1.0);
